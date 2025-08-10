@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your Cart | E-commerce</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #f6f8fa;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .navbar {
+      background: #2874f0;
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .navbar .brand {
+      font-size: 1.4em;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .navbar .nav-links a {
+      color: #fff;
+      text-decoration: none;
+      margin-left: 24px;
+      font-size: 1em;
+      transition: text-decoration 0.2s;
+    }
+    .navbar .nav-links a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      max-width: 900px;
+      margin: 32px auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(40,116,240,0.08);
+      padding: 32px 24px;
+    }
+    h2 {
+      color: #2874f0;
+      margin-bottom: 18px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+    th, td {
+      padding: 12px 8px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+    }
+    th {
+      background: #e3f0fd;
+      color: #2874f0;
+    }
+    .cart-img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 6px;
+      background: #fff;
+    }
+    .qty-input {
+      width: 50px;
+      padding: 4px;
+      text-align: center;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .remove-btn {
+      background: #d32f2f;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 0.95em;
+      transition: background 0.2s;
+    }
+    .remove-btn:hover {
+      background: #a31515;
+    }
+    .checkout-btn {
+      background: #2874f0;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 12px 28px;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 16px;
+      float: right;
+    }
+    .checkout-btn:hover {
+      background: #185bb5;
+    }
+    .empty-cart {
+      text-align: center;
+      color: #888;
+      font-size: 1.1em;
+      margin: 40px 0;
+    }
+    .total-row td {
+      font-weight: bold;
+      color: #2874f0;
+      font-size: 1.1em;
+    }
+    @media (max-width: 700px) {
+      .container { padding: 12px 2px; }
+      table, th, td { font-size: 0.97em; }
+      .checkout-btn { width: 100%; float: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <span class="brand">E-commerce</span>
+    <div class="nav-links">
+      <a href="/frontend/home/home.html">Home</a>
+      <a href="#" id="logoutBtn">Logout</a>
+    </div>
+  </div>
+  <div class="container">
+    <h2>Your Cart</h2>
+    <div id="cartContent"></div>
+  </div>
+  <script>
+    // Logout
+    document.getElementById('logoutBtn').onclick = function() {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/frontend/enduserlogin/login.html';
+    };
+
+    // Fetch and render cart
+    async function loadCart() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/frontend/enduserlogin/login.html";
+        return;
+      }
+      try {
+        const res = await fetch('/v1/endusers/cart', {
+          headers: { 'token': token }
+        });
+        const data = await res.json();
+        if (!data.cart || !data.cart.products.length) {
+          document.getElementById('cartContent').innerHTML = '<div class="empty-cart">Your cart is empty.</div>';
+          return;
+        }
+        renderCart(data.cart.products);
+      } catch (err) {
+        document.getElementById('cartContent').innerHTML = '<div class="empty-cart">Failed to load cart.</div>';
+      }
+    }
+
+    function renderCart(products) {
+      let total = 0;
+      let html = `<table>
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Product</th>
+            <th>Price</th>
+            <th>Qty</th>
+            <th>Subtotal</th>
+            <th>Remove</th>
+          </tr>
+        </thead>
+        <tbody>`;
+      products.forEach(item => {
+        const prod = item.productid;
+        const qty = item.quantity;
+        const subtotal = prod.price * qty;
+        total += subtotal;
+        html += `
+          <tr>
+            <td><img class="cart-img" src="${prod.image || 'https://via.placeholder.com/60'}" alt="${prod.name}"></td>
+            <td>${prod.name}</td>
+            <td>₹${prod.price}</td>
+            <td>
+              <input type="number" class="qty-input" min="1" max="${prod.stock}" value="${qty}" onchange="updateQty('${prod._id}', this.value)">
+            </td>
+            <td>₹${subtotal}</td>
+            <td>
+              <button class="remove-btn" onclick="removeFromCart('${prod._id}')">Remove</button>
+            </td>
+          </tr>
+        `;
+      });
+      html += `
+        <tr class="total-row">
+          <td colspan="4" style="text-align:right;">Total:</td>
+          <td colspan="2" style="text-align:left;">₹${total}</td>
+        </tr>
+        </tbody>
+      </table>
+      <button class="checkout-btn" onclick="checkout()">Checkout</button>
+      `;
+      document.getElementById('cartContent').innerHTML = html;
+    }
+
+    // Update quantity
+    async function updateQty(productId, qty) {
+      const token = localStorage.getItem("token");
+      try {
+        const res = await fetch(`/v1/endusers/cart/${productId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'token': token
+          },
+          body: JSON.stringify({ quantity: Number(qty) })
+        });
+        const data = await res.json();
+        if (data.message) {
+          loadCart();
+        }
+      } catch (err) {
+        alert('Failed to update quantity.');
+      }
+    }
+
+    // Remove from cart
+    async function removeFromCart(productId) {
+      const token = localStorage.getItem("token");
+      try {
+        const res = await fetch(`/v1/endusers/cart/${productId}`, {
+          method: 'DELETE',
+          headers: { 'token': token }
+        });
+        const data = await res.json();
+        if (data.message) {
+          loadCart();
+        }
+      } catch (err) {
+        alert('Failed to remove item.');
+      }
+    }
+
+    // Checkout (redirect to checkout page or call API)
+    function checkout() {
+      window.location.href = "/frontend/checkout/checkout.html";
+    }
+
+    // Expose updateQty and removeFromCart to global scope
+    window.updateQty = updateQty;
+    window.removeFromCart = removeFromCart;
+
+    // On page load
+    loadCart();
+  </script>
+</body>
+</html>

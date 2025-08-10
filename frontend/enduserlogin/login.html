@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Login | E-commerce</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #f6f8fa;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .login-container {
+      max-width: 400px;
+      margin: 60px auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(40,116,240,0.08);
+      padding: 32px 24px;
+    }
+    .login-container h2 {
+      color: #2874f0;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .login-container label {
+      display: block;
+      margin-bottom: 6px;
+      color: #222;
+      font-weight: 500;
+    }
+    .login-container input {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 18px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 1em;
+      background: #f9fafb;
+      transition: border 0.2s;
+    }
+    .login-container input:focus {
+      border-color: #2874f0;
+      outline: none;
+      background: #fff;
+    }
+    .login-container button {
+      width: 100%;
+      padding: 12px;
+      background: #2874f0;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .login-container button:hover {
+      background: #185bb5;
+    }
+    .login-container .msg {
+      margin-top: 12px;
+      text-align: center;
+      color: #d32f2f;
+      font-size: 0.98em;
+    }
+    .login-container .register-link {
+      display: block;
+      text-align: center;
+      margin-top: 18px;
+      color: #2874f0;
+      text-decoration: none;
+      font-size: 0.98em;
+    }
+    .login-container .register-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>User Login</h2>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input type="email" id="email" required />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" required minlength="8" />
+
+      <button type="submit">Login</button>
+      <div class="msg" id="message"></div>
+    </form>
+    <a class="register-link" href="/frontend/register/register.html">Don't have an account? Register</a>
+  </div>
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const messageElem = document.getElementById("message");
+
+      try {
+        const response = await fetch("http://localhost:3333/v1/endusers/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status) {
+          messageElem.style.color = "green";
+          messageElem.textContent = "Login successful!";
+          localStorage.setItem("token", data.tokenval2);
+          localStorage.setItem("username", data.user?.name || "User");
+          window.location.href = '/frontend/home/home.html';
+        } else {
+          messageElem.style.color = "red";
+          messageElem.textContent = data.message || "Login failed";
+        }
+      } catch (err) {
+        messageElem.style.color = "red";
+        messageElem.textContent = "Error connecting to server.";
+      }
+    });
+</script>
+</body> 
+</html>

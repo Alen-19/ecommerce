@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Home | E-commerce</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #f6f8fa;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .navbar {
+      background: #2874f0;
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .navbar .brand {
+      font-size: 1.4em;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .navbar .nav-links a {
+      color: #fff;
+      text-decoration: none;
+      margin-left: 24px;
+      font-size: 1em;
+      transition: text-decoration 0.2s;
+    }
+    .navbar .nav-links a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 32px auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(40,116,240,0.08);
+      padding: 32px 24px;
+    }
+    h2 {
+      color: #2874f0;
+      margin-bottom: 18px;
+    }
+    .categories, .products {
+      margin-bottom: 32px;
+    }
+    .category-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .category-item {
+      background: #e3f0fd;
+      color: #2874f0;
+      padding: 8px 18px;
+      border-radius: 16px;
+      font-size: 1em;
+      cursor: pointer;
+      border: 1px solid #b6d4fa;
+      transition: background 0.2s;
+    }
+    .category-item:hover {
+      background: #2874f0;
+      color: #fff;
+    }
+    .product-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+    }
+    .product-card {
+      background: #f9fafb;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(40,116,240,0.06);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: box-shadow 0.2s;
+    }
+    .product-card:hover {
+      box-shadow: 0 4px 16px rgba(40,116,240,0.12);
+    }
+    .product-card img {
+      max-width: 120px;
+      max-height: 120px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      background: #fff;
+    }
+    .product-card .name {
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #222;
+      text-align: center;
+    }
+    .product-card .desc {
+      font-size: 0.98em;
+      color: #555;
+      margin-bottom: 8px;
+      text-align: center;
+      min-height: 40px;
+    }
+    .product-card .price {
+      color: #2874f0;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .product-card button {
+      background: #2874f0;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 18px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .product-card button:hover {
+      background: #185bb5;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 16px 4px; }
+      .navbar { flex-direction: column; align-items: flex-start; }
+      .navbar .nav-links { margin-top: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <span class="brand">E-commerce</span>
+    <div class="nav-links">
+      <a href="/frontend/cart/cart.html">Cart</a>
+      <a href="#" id="logoutBtn">Logout</a>
+    </div>
+  </div>
+  <div class="container">
+    <h2>Welcome, <span id="username">User</span>!</h2>
+    <div class="categories">
+      <h3>Categories</h3>
+      <div class="category-list" id="categoryList"></div>
+    </div>
+    <div class="products">
+      <h3>Products</h3>
+      <div class="product-list" id="productList"></div>
+    </div>
+  </div>
+  <script>
+    // Optionally, set username from localStorage/session after login
+    document.getElementById('username').textContent = localStorage.getItem('username') || 'User';
+
+    // Fetch categories
+    async function loadCategories() {
+      try {
+        const res = await fetch('/v1/endusers/categories');
+        const data = await res.json();
+        const list = document.getElementById('categoryList');
+        list.innerHTML = '';
+        data.categories.forEach(cat => {
+          const el = document.createElement('div');
+          el.className = 'category-item';
+          el.textContent = cat.name;
+          el.onclick = () => filterByCategory(cat._id);
+          list.appendChild(el);
+        });
+      } catch (err) {
+        document.getElementById('categoryList').innerHTML = '<span style="color:#d32f2f;">Failed to load categories.</span>';
+      }
+    }
+
+    // Fetch products
+    let allProducts = [];
+    async function loadProducts() {
+      try {
+        const res = await fetch('/v1/endusers/products');
+        const data = await res.json();
+        allProducts = data.products;
+        renderProducts(allProducts);
+      } catch (err) {
+        document.getElementById('productList').innerHTML = '<span style="color:#d32f2f;">Failed to load products.</span>';
+      }
+    }
+
+    function renderProducts(products) {
+      const list = document.getElementById('productList');
+      list.innerHTML = '';
+      if (!products.length) {
+        list.innerHTML = '<span>No products found.</span>';
+        return;
+      }
+      products.forEach(prod => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <img src="${prod.image || 'https://via.placeholder.com/120'}" alt="${prod.name}">
+          <div class="name">${prod.name}</div>
+          <div class="desc">${prod.description || ''}</div>
+          <div class="price">₹${prod.price}</div>
+          <button onclick="addToCart('${prod._id}')">Add to Cart</button>
+          <button onclick="window.location.href='/frontend/product/product.html?id=${prod._id}'" style="margin-top:8px;background:#43a047;">Buy Now</button>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function filterByCategory(catId) {
+      if (!catId) return renderProducts(allProducts);
+      const filtered = allProducts.filter(p => p.catid && (p.catid._id === catId || p.catid === catId));
+      renderProducts(filtered);
+    }
+    // Logout
+    document.getElementById('logoutBtn').onclick = function() {
+      // Clear local/session storage and redirect to login
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/frontend/enduserlogin/login.html';
+    };
+
+    // On page load
+    loadCategories();
+    loadProducts();
+    async function addToCart(productId) {
+        const quantity = 1;
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("You must be logged in to add to cart.");
+            window.location.href = "/frontend/enduserlogin/login.html";
+            return;
+        }
+        try {
+            const res = await fetch('/v1/endusers/addtocart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'token': token // <-- Use 'token' as the header key
+            },
+            body: JSON.stringify({ productid: productId, quantity })
+            });
+            const result = await res.json();
+            if (result.message) {
+            alert(result.message);
+            }
+        } catch (err) {
+            alert('Failed to add to cart.');
+        }
+        }
+  </script>
+</body>
+</html>

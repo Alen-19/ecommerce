@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Product Details | E-commerce</title>
+  <link rel="stylesheet" href="https://unpkg.com/atropos/css" />
+  <style>
+    body { font-family: Arial, sans-serif; background: #f6f8fa; margin: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(40,116,240,0.08); padding: 32px 24px; }
+    .product-title { font-size: 1.5em; font-weight: bold; margin-bottom: 12px; color: #2874f0; }
+    .product-desc { color: #555; margin-bottom: 18px; }
+    .product-price { color: #2874f0; font-weight: bold; font-size: 1.2em; margin-bottom: 20px; }
+    #buyNowForm label { display: block; margin: 10px 0 4px; }
+    #buyNowForm input { width: 100%; padding: 6px; margin-bottom: 10px; }
+    #buyNowForm button { background: #43a047; color: #fff; border: none; border-radius: 4px; padding: 10px 18px; font-size: 1em; cursor: pointer; }
+    #buyNowForm button:hover { background: #2874f0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="atropos-container" style="margin-bottom:24px;">
+      <!-- Atropos will be initialized here -->
+    </div>
+    <div class="product-title" id="productName"></div>
+    <div class="product-desc" id="productDesc"></div>
+    <div class="product-price" id="productPrice"></div>
+    <form id="buyNowForm">
+      <label>Quantity: <input type="number" name="quantity" value="1" min="1" required /></label>
+      <label>Name: <input type="text" name="name" required /></label>
+      <label>Street: <input type="text" name="street" required /></label>
+      <label>City: <input type="text" name="city" required /></label>
+      <label>State: <input type="text" name="state" required /></label>
+      <label>Zip: <input type="text" name="zip" required /></label>
+      <label>Country: <input type="text" name="country" required /></label>
+      <button type="submit">Place Order</button>
+    </form>
+  </div>
+  <script src="https://unpkg.com/atropos"></script>
+  <script>
+    // Get product ID from URL
+    const params = new URLSearchParams(window.location.search);
+    const productId = params.get('id');
+    if (!productId) {
+      document.body.innerHTML = '<h2>Product not found.</h2>';
+      throw new Error('No product ID');
+    }
+
+    // Fetch product details
+    async function loadProduct() {
+      const res = await fetch('/v1/endusers/products');
+      const data = await res.json();
+      const prod = data.products.find(p => p._id === productId);
+      if (!prod) {
+        document.body.innerHTML = '<h2>Product not found.</h2>';
+        return;
+      }
+      document.getElementById('productName').textContent = prod.name;
+      document.getElementById('productDesc').textContent = prod.description || '';
+      document.getElementById('productPrice').textContent = '₹' + prod.price;
+
+      // Atropos image
+      const atroposDiv = document.createElement('div');
+      atroposDiv.className = 'atropos my-atropos';
+      atroposDiv.style = "width:300px;height:300px;margin:auto;";
+      atroposDiv.innerHTML = `
+        <div class="atropos-scale">
+          <div class="atropos-rotate">
+            <div class="atropos-inner">
+              <img src="${prod.image || 'https://via.placeholder.com/300'}" alt="${prod.name}" style="width:100%;border-radius:12px;" data-atropos-offset="3">
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById('atropos-container').appendChild(atroposDiv);
+      Atropos({ el: '.my-atropos' });
+    }
+    loadProduct();
+
+    // Buy Now form submit
+    document.getElementById('buyNowForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const quantity = form.quantity.value;
+      const address = {
+        name: form.name.value,
+        street: form.street.value,
+        city: form.city.value,
+        state: form.state.value,
+        zip: form.zip.value,
+        country: form.country.value
+      };
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You must be logged in to place an order.');
+        window.location.href = "/frontend/enduserlogin/login.html";
+        return;
+      }
+      try {
+        const res = await fetch('/v1/endusers/directorder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'token': token
+          },
+          body: JSON.stringify({
+            products: [{ productId, quantity: Number(quantity) }],
+            address
+          })
+        });
+        const data = await res.json();
+        alert(data.message || 'Order placed!');
+        if (data.message && data.message.toLowerCase().includes('success')) {
+          window.location.href = "/frontend/home/home.html";
+        }
+      } catch (err) {
+        alert('Failed to place order.');
+      }
+    });
+  </script>
+</body>
+</html>
